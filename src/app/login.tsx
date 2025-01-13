@@ -9,17 +9,19 @@ import {
   Typography,
   Link,
   CircularProgress,
+  Tabs,
+  Tab,
 } from "@mui/material";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { useState } from "react";
-import { Coffee } from "lucide-react";
+import { Coffee } from "lucide-react"; 
 
 const defaultTheme = createTheme();
 
 const SignInSide = () => {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); 
   const [error, setError] = useState("");
-  const [isLogin, setIsLogin] = useState(true); // State to toggle between login and register
+  const [tabIndex, setTabIndex] = useState(0)
 
   return (
     <ThemeProvider theme={defaultTheme}>
@@ -40,7 +42,7 @@ const SignInSide = () => {
                 : t.palette.grey[900],
             backgroundSize: "cover",
             backgroundPosition: "center",
-            position: "fixed",
+            position: "fixed", 
             top: 0,
             left: 0,
             width: "100%",
@@ -62,12 +64,12 @@ const SignInSide = () => {
             alignItems: "center",
             justifyContent: "center",
             p: 4,
-            position: "fixed",
+            position: "fixed", 
             top: 0,
             right: 0,
             width: "100%",
             height: "100vh",
-            zIndex: 1,
+            zIndex: 1, 
           }}
         >
           {/* Logo */}
@@ -93,6 +95,23 @@ const SignInSide = () => {
               Kantin
             </Typography>
           </Box>
+          {/* Tabs */}
+          <Tabs
+            value={tabIndex}
+            onChange={(event, newValue) => setTabIndex(newValue)}
+            centered
+            sx={{
+              width: "100%",
+              position: "absolute",
+              top: "30%",
+              left: "50%",
+              transform: "translateX(-50%)",
+              mb: 3,
+            }}
+          >
+            <Tab label="Login" />
+            <Tab label="Register" />
+          </Tabs>
           {/* Form Section */}
           <Box
             component="form"
@@ -105,13 +124,13 @@ const SignInSide = () => {
               alignItems: "center",
               textAlign: "center",
               position: "absolute",
-              top: "30%",
+              top: "40%",
               left: "50%",
               transform: "translateX(-50%)",
             }}
           >
             <Typography component="h1" variant="h5" sx={{ mb: 3 }}>
-              {isLogin ? "Login" : "Register"}
+              {tabIndex === 0 ? "Login" : "Register"}
             </Typography>
             <TextField
               margin="normal"
@@ -135,7 +154,7 @@ const SignInSide = () => {
               autoComplete="current-password"
               sx={{ mb: 1 }}
             />
-            {!isLogin && (
+            {tabIndex === 1 && (
               <TextField
                 margin="normal"
                 required
@@ -162,44 +181,19 @@ const SignInSide = () => {
             >
               {loading ? (
                 <CircularProgress size={24} color="inherit" />
-              ) : isLogin ? (
+              ) : tabIndex === 0 ? (
                 "Sign In"
               ) : (
                 "Register"
               )}
             </Button>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                width: "100%",
-                mt: 2,
-              }}
+            <Link
+              href="https://youtu.be/_OMFqXy3j1g?si=qbFgqH0ri93bLUOh"
+              variant="body2"
+              sx={{ alignSelf: "flex-start", mt: 1 }}
             >
-              <Link
-                href="#"
-                onClick={() => setIsLogin(true)}
-                variant="body2"
-                underline="hover"
-              >
-                Login
-              </Link>
-              <Link
-                href="#"
-                onClick={() => setIsLogin(false)}
-                variant="body2"
-                underline="hover"
-              >
-                Register
-              </Link>
-              <Link
-                href="https://youtu.be/_OMFqXy3j1g?si=qbFgqH0ri93bLUOh"
-                variant="body2"
-                underline="hover"
-              >
-                Forgot password?
-              </Link>
-            </Box>
+              Forgot password?
+            </Link>
           </Box>
           {/* Copyright */}
           <Box
