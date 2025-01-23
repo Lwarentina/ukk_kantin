@@ -9,19 +9,98 @@ import {
   Typography,
   Link,
   CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { useState } from "react";
 import { Coffee } from "lucide-react";
+import axios from "axios";
 
 const defaultTheme = createTheme();
 
 const SignInSide = () => {
+  const [formData, setFormData] = useState({ username: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "info",
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+
+    // Ensure both fields are filled
+    if (!formData.username || !formData.password) {
+      setSnackbar({
+        open: true,
+        message: "Please fill in both username and password.",
+        severity: "error",
+      });
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Attempt login
+      const response = await axios.post(
+        "https://ukk-p2.smktelkom-mlg.sch.id/api/login_siswa",
+        {
+          username: formData.username,
+          password: formData.password,
+        },
+        {
+          headers: {
+            makerID: "3", // Add the makerID required by the API
+          },
+        }
+      );
+
+      // Save token and redirect based on role
+      const { access_token, user } = response.data;
+      localStorage.setItem("authToken", access_token);
+
+      // Redirect based on the user's role
+      if (user.role === "siswa") {
+        window.location.href = "/siswa";
+      } else if (user.role === "admin_stan") {
+        window.location.href = "/stan";
+      } else {
+        setError("Unrecognized user role. Please contact support.");
+      }
+    } catch (err: any) {
+      // Handle login error
+      setError(
+        err.response?.data?.message ||
+          "Login failed. Please check your credentials and try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleRegister = () => {
     window.location.href = "/register";
+  };
+
+  const handleForgotPassword = () => {
+    setSnackbar({
+      open: true,
+      message: "This feature is still under maintenance",
+      severity: "info",
+    });
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbar({ ...snackbar, open: false });
   };
 
   return (
@@ -37,10 +116,6 @@ const SignInSide = () => {
           sx={{
             backgroundImage:
               'url("https://images.adsttc.com/media/images/50aa/e71e/b3fc/4b0b/5400/007d/slideshow/RocheCanteen-14.jpg")',
-            backgroundColor: (t) =>
-              t.palette.mode === "light"
-                ? t.palette.grey[50]
-                : t.palette.grey[900],
             backgroundSize: "cover",
             backgroundPosition: "center",
             position: "fixed",
@@ -100,6 +175,7 @@ const SignInSide = () => {
           <Box
             component="form"
             noValidate
+            onSubmit={handleSubmit}
             sx={{
               width: "100%",
               maxWidth: 400,
@@ -120,10 +196,11 @@ const SignInSide = () => {
               margin="normal"
               required
               fullWidth
-              id="id"
-              label="ID Number"
-              name="id"
-              autoComplete="id"
+              id="username"
+              label="Username"
+              name="username"
+              value={formData.username}
+              onChange={handleChange}
               autoFocus
               sx={{ mb: 1 }}
             />
@@ -135,7 +212,8 @@ const SignInSide = () => {
               label="Password"
               type="password"
               id="password"
-              autoComplete="current-password"
+              value={formData.password}
+              onChange={handleChange}
               sx={{ mb: 1 }}
             />
             {error && (
@@ -175,7 +253,12 @@ const SignInSide = () => {
                   Register.
                 </Link>
               </Typography>
-              <Link href="#" variant="body2" underline="hover">
+              <Link
+                onClick={handleForgotPassword}
+                variant="body2"
+                underline="hover"
+                sx={{ cursor: "pointer" }}
+              >
                 Forgot password?
               </Link>
             </Box>
@@ -201,6 +284,21 @@ const SignInSide = () => {
             </Typography>
           </Box>
         </Grid>
+        {/* Snackbar */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={4000}
+          onClose={handleSnackbarClose}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        >
+          <Alert
+            onClose={handleSnackbarClose}
+            severity={snackbar.severity as "info" | "success" | "error"}
+            sx={{ width: "100%" }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Grid>
     </ThemeProvider>
   );
