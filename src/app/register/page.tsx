@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { useState } from "react";
+import axios from "axios";
 import { Coffee } from "lucide-react";
 
 const defaultTheme = createTheme();
@@ -55,45 +56,42 @@ const Register = () => {
     setError("");
     setSuccess(false);
 
+    const baseUrl = "https://ukk-p2.smktelkom-mlg.sch.id/api/";
     const apiUrl =
-      activeTab === 0
-        ? "http://your-api-endpoint/register-siswa"
-        : "http://your-api-endpoint/register-stan";
+      activeTab === 0 ? `${baseUrl}register_siswa` : `${baseUrl}register_stan`;
 
-    const formDataObj = new FormData();
-    if (activeTab === 0) {
-      // For Siswa
-      formDataObj.append("nama_siswa", formData.nama_siswa);
-      formDataObj.append("alamat", formData.alamat);
-      formDataObj.append("telp", formData.telp);
-      formDataObj.append("username", formData.username);
-      formDataObj.append("password", formData.password);
-    } else {
-      // For Stan
-      formDataObj.append("nama_pemilik", formData.nama_pemilik);
-      formDataObj.append("nama_stan", formData.nama_stan);
-      formDataObj.append("telp", formData.telp);
-      formDataObj.append("username", formData.username);
-      formDataObj.append("password", formData.password);
-    }
+    const dataToSend =
+      activeTab === 0
+        ? {
+            nama_siswa: formData.nama_siswa,
+            alamat: formData.alamat,
+            telp: formData.telp,
+            username: formData.username,
+            password: formData.password,
+          }
+        : {
+            nama_pemilik: formData.nama_pemilik,
+            nama_stan: formData.nama_stan,
+            telp: formData.telp,
+            username: formData.username,
+            password: formData.password,
+          };
 
     try {
-      const response = await fetch(apiUrl, {
-        method: "POST",
+      const response = await axios.post(apiUrl, dataToSend, {
         headers: {
-          Accept: "application/json",
+          "Content-Type": "application/json", // Using JSON instead of FormData
+          makerID: "3",
         },
-        body: formDataObj,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Failed to register");
+      if (response.status === 200) {
+        setSuccess(true);
+      } else {
+        throw new Error(response.data.message || "Failed to register");
       }
-
-      setSuccess(true);
     } catch (err: any) {
-      setError(err.message || "Something went wrong");
+      setError(err.response?.data?.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -257,14 +255,18 @@ const Register = () => {
             />
             {error && (
               <Typography color="error" sx={{ mt: 2 }}>
-                {error}
+                {typeof error === "string" ? error : JSON.stringify(error)}
               </Typography>
             )}
+
             {success && (
               <Typography color="success.main" sx={{ mt: 2 }}>
-                Registration successful!
+                {typeof success === "string"
+                  ? success
+                  : JSON.stringify(success)}
               </Typography>
             )}
+
             <Button
               type="submit"
               fullWidth
