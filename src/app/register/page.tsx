@@ -29,6 +29,7 @@ const Register = () => {
     nama_stan: "",
     nama_pemilik: "",
   });
+  const [errors, setErrors] = useState<any>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -44,14 +45,42 @@ const Register = () => {
       nama_stan: "",
       nama_pemilik: "",
     }); // Reset form data when switching tabs
+    setErrors({});
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setErrors({ ...errors, [e.target.name]: "" }); // Clear field-specific error on change
+  };
+
+  const validateFields = () => {
+    const newErrors: any = {};
+
+    if (activeTab === 0) {
+      if (!formData.nama_siswa)
+        newErrors.nama_siswa = "Nama Siswa is required.";
+      if (!formData.alamat) newErrors.alamat = "Alamat is required.";
+    } else {
+      if (!formData.nama_pemilik)
+        newErrors.nama_pemilik = "Nama Pemilik is required.";
+      if (!formData.nama_stan) newErrors.nama_stan = "Nama Stan is required.";
+    }
+
+    if (!formData.telp) newErrors.telp = "No Telepon is required.";
+    if (!formData.username) newErrors.username = "Username is required.";
+    if (!formData.password) newErrors.password = "Password is required.";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0; // Return true if no errors
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validateFields()) {
+      return; // Stop submission if validation fails
+    }
+
     setLoading(true);
     setError("");
     setSuccess(false);
@@ -80,7 +109,7 @@ const Register = () => {
     try {
       const response = await axios.post(apiUrl, dataToSend, {
         headers: {
-          "Content-Type": "application/json", // Using JSON instead of FormData
+          "Content-Type": "application/json",
           makerID: "3",
         },
       });
@@ -142,7 +171,6 @@ const Register = () => {
               Kantin
             </Typography>
           </Box>
-          {/* Tabs */}
           <Tabs
             value={activeTab}
             onChange={handleTabChange}
@@ -152,7 +180,6 @@ const Register = () => {
             <Tab label="Siswa" />
             <Tab label="Stan" />
           </Tabs>
-          {/* Form Section */}
           <Box
             component="form"
             noValidate
@@ -178,7 +205,8 @@ const Register = () => {
                   name="nama_siswa"
                   value={formData.nama_siswa}
                   onChange={handleChange}
-                  sx={{ mb: 1 }}
+                  error={!!errors.nama_siswa}
+                  helperText={errors.nama_siswa}
                 />
                 <TextField
                   margin="normal"
@@ -189,7 +217,8 @@ const Register = () => {
                   name="alamat"
                   value={formData.alamat}
                   onChange={handleChange}
-                  sx={{ mb: 1 }}
+                  error={!!errors.alamat}
+                  helperText={errors.alamat}
                 />
               </>
             ) : (
@@ -203,7 +232,8 @@ const Register = () => {
                   name="nama_pemilik"
                   value={formData.nama_pemilik}
                   onChange={handleChange}
-                  sx={{ mb: 1 }}
+                  error={!!errors.nama_pemilik}
+                  helperText={errors.nama_pemilik}
                 />
                 <TextField
                   margin="normal"
@@ -214,7 +244,8 @@ const Register = () => {
                   name="nama_stan"
                   value={formData.nama_stan}
                   onChange={handleChange}
-                  sx={{ mb: 1 }}
+                  error={!!errors.nama_stan}
+                  helperText={errors.nama_stan}
                 />
               </>
             )}
@@ -225,10 +256,10 @@ const Register = () => {
               id="telp"
               label="No Telepon"
               name="telp"
-              type="tel"
               value={formData.telp}
               onChange={handleChange}
-              sx={{ mb: 1 }}
+              error={!!errors.telp}
+              helperText={errors.telp}
             />
             <TextField
               margin="normal"
@@ -239,7 +270,8 @@ const Register = () => {
               name="username"
               value={formData.username}
               onChange={handleChange}
-              sx={{ mb: 1 }}
+              error={!!errors.username}
+              helperText={errors.username}
             />
             <TextField
               margin="normal"
@@ -251,22 +283,19 @@ const Register = () => {
               type="password"
               value={formData.password}
               onChange={handleChange}
-              sx={{ mb: 1 }}
+              error={!!errors.password}
+              helperText={errors.password}
             />
             {error && (
               <Typography color="error" sx={{ mt: 2 }}>
-                {typeof error === "string" ? error : JSON.stringify(error)}
+                {error}
               </Typography>
             )}
-
             {success && (
               <Typography color="success.main" sx={{ mt: 2 }}>
-                {typeof success === "string"
-                  ? success
-                  : JSON.stringify(success)}
+                Registration successful!
               </Typography>
             )}
-
             <Button
               type="submit"
               fullWidth
@@ -288,7 +317,7 @@ const Register = () => {
                 underline="hover"
                 sx={{ cursor: "pointer" }}
               >
-                Login
+                Login.
               </Link>
             </Typography>
           </Box>
