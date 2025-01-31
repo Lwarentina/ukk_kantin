@@ -308,7 +308,6 @@ const MenuList = () => {
                 bgcolor: "#f9f9f9", // Light background color for the add menu card
                 cursor: "pointer",
                 padding: 2,
-                display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
               }}
