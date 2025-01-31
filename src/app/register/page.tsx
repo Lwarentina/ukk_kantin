@@ -68,7 +68,12 @@ const Register = () => {
 
     if (!formData.telp) newErrors.telp = "No Telepon is required.";
     if (!formData.username) newErrors.username = "Username is required.";
-    if (!formData.password) newErrors.password = "Password is required.";
+
+    if (!formData.password) {
+      newErrors.password = "Password is required.";
+    } else if (formData.password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters long.";
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0; // Return true if no errors
