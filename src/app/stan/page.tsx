@@ -3,15 +3,13 @@ import React, { useEffect, useState } from "react";
 import {
   Box,
   Typography,
-  Grid,
-  Card,
-  CardContent,
   CircularProgress,
   Snackbar,
   Alert,
   Button,
 } from "@mui/material";
 import axios from "axios";
+import Navbar from "./navbar"; // Import Navbar
 
 const DashboardStan = () => {
   const [stanData, setStanData] = useState<any>(null);
@@ -24,23 +22,18 @@ const DashboardStan = () => {
   });
 
   useEffect(() => {
-    // Get token from localStorage
     const token = localStorage.getItem("authToken");
     if (!token) {
-      window.location.href = "/"; // Redirect to login if no token
+      window.location.href = "/";
       return;
     }
 
-    // Fetch stan data
     const fetchStanData = async () => {
       try {
         const response = await axios.get(
           "https://ukk-p2.smktelkom-mlg.sch.id/api/get_stan",
           {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              makerID: "3", // Add the required makerID here
-            },
+            headers: { Authorization: `Bearer ${token}`, makerID: "3" },
           }
         );
         setStanData(response.data.data);
@@ -65,8 +58,8 @@ const DashboardStan = () => {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("authToken"); // Remove token
-    window.location.href = "/"; // Redirect to login page
+    localStorage.removeItem("authToken");
+    window.location.href = "/";
   };
 
   const handleSnackbarClose = () => {
@@ -75,112 +68,23 @@ const DashboardStan = () => {
 
   if (loading) {
     return (
-      <Box
-        sx={{
-          height: "100vh",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
+      <Box sx={{ height: "100vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
         <CircularProgress />
-      </Box>
-    );
-  }
-
-  if (error) {
-    return (
-      <Box
-        sx={{
-          height: "100vh",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          flexDirection: "column",
-          textAlign: "center",
-        }}
-      >
-        <Typography variant="h6" color="error">
-          {error}
-        </Typography>
       </Box>
     );
   }
 
   return (
     <Box sx={{ p: 4 }}>
-      {/* Logout Button */}
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 3,
-        }}
-      >
+      <Navbar /> {/* Add Navbar Here */}
+
+      {/* Logout & Welcome */}
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
         <Typography variant="h4">Welcome, {stanData?.nama_pemilik}!</Typography>
-        <Button
-          variant="contained"
-          color="error"
-          onClick={handleLogout}
-          sx={{ textTransform: "none" }}
-        >
+        <Button variant="contained" color="error" onClick={handleLogout} sx={{ textTransform: "none" }}>
           Logout
         </Button>
       </Box>
-
-      <Grid container spacing={3}>
-        <Grid item xs={12} sm={6} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Nama Stan:
-              </Typography>
-              <Typography>{stanData?.nama_stan}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Nama Pemilik:
-              </Typography>
-              <Typography>{stanData?.nama_pemilik}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Telepon:
-              </Typography>
-              <Typography>{stanData?.telp}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Username:
-              </Typography>
-              <Typography>{stanData?.username}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Role:
-              </Typography>
-              <Typography>{stanData?.role}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
 
       {/* Snackbar */}
       <Snackbar
@@ -189,11 +93,7 @@ const DashboardStan = () => {
         onClose={handleSnackbarClose}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert
-          onClose={handleSnackbarClose}
-          severity={snackbar.severity as "info" | "success" | "error"}
-          sx={{ width: "100%" }}
-        >
+        <Alert onClose={handleSnackbarClose} severity={snackbar.severity as "info" | "success" | "error"} sx={{ width: "100%" }}>
           {snackbar.message}
         </Alert>
       </Snackbar>
