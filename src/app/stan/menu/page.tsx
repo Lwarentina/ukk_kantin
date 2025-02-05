@@ -1,36 +1,45 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import {
-  Box,
-  Typography,
-  Grid,
-  Card,
-  CardContent,
-  TextField,
-  CircularProgress,
-  Button,
-  Select,
-  MenuItem,
-  FormControl,
-  Fab,
-  Modal,
-  IconButton,
-  Snackbar,
-} from "@mui/material";
+
+import type React from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Plus, Trash } from "lucide-react";
 import axios from "axios";
 import debounce from "lodash.debounce";
-import Navbar from "../navbar";
 import { FileDrop } from "react-file-drop";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "@/hooks/use-toast";
+import Navbar from "../navbar";
 
 const MenuList = () => {
   const [search, setSearch] = useState("");
   const [menuData, setMenuData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [openForm, setOpenForm] = useState(false);
-  const [filterType, setFilterType] = useState("");
+  const [filterType, setFilterType] = useState("all");
   const [addLoading, setAddLoading] = useState(false);
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [newMenu, setNewMenu] = useState({
     nama_makanan: "",
@@ -40,7 +49,7 @@ const MenuList = () => {
     foto: null as File | null,
   });
 
-  const fetchMenu = async () => {
+  const fetchMenu = useCallback(async () => {
     const token = localStorage.getItem("authToken");
     if (!token) return;
 
@@ -61,14 +70,19 @@ const MenuList = () => {
       console.error("Error fetching menu:", err);
     }
     setLoading(false);
-  };
+  }, [search]);
 
-  const debouncedSearch = debounce(fetchMenu, 500);
+  const debouncedSearch = useCallback(
+    debounce(() => {
+      fetchMenu();
+    }, 500),
+    [fetchMenu]
+  );
 
   useEffect(() => {
     debouncedSearch();
     return () => debouncedSearch.cancel();
-  }, [search]);
+  }, [debouncedSearch, search]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -101,7 +115,6 @@ const MenuList = () => {
         }
       );
 
-      // Refresh menu list
       fetchMenu();
     } catch (err) {
       console.error("Error deleting menu:", err);
@@ -112,14 +125,17 @@ const MenuList = () => {
     const token = localStorage.getItem("authToken");
     if (!token) return;
 
-    // Validate form fields
     if (
       !newMenu.nama_makanan ||
       !newMenu.harga ||
       !newMenu.deskripsi ||
       !newMenu.foto
     ) {
-      alert("Please fill all fields before adding the menu.");
+      toast({
+        title: "Error",
+        description: "Please fill all fields before adding the menu.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -147,7 +163,6 @@ const MenuList = () => {
         }
       );
 
-      // Reset form and close modal
       setNewMenu({
         nama_makanan: "",
         jenis: "makanan",
@@ -156,11 +171,19 @@ const MenuList = () => {
         foto: null,
       });
       setOpenForm(false);
-      setSnackbarOpen(true);
+      toast({
+        title: "Success",
+        description: "Menu added successfully!",
+      });
       fetchMenu();
     } catch (err) {
       console.error("Error adding menu:", err);
-      alert("There was an error while adding the menu. Please try again.");
+      toast({
+        title: "Error",
+        description:
+          "There was an error while adding the menu. Please try again.",
+        variant: "destructive",
+      });
     }
 
     setAddLoading(false);
@@ -176,334 +199,217 @@ const MenuList = () => {
       if (file.type.startsWith("image/")) {
         setNewMenu({ ...newMenu, foto: file });
       } else {
-        alert("Please upload an image file");
+        toast({
+          title: "Error",
+          description: "Please upload an image file",
+          variant: "destructive",
+        });
       }
     }
   };
 
   return (
-    <Box sx={{ p: 4, bgcolor: "#f4f6f8", minHeight: "100vh" }}>
+    <div className="bg-gray-100 min-h-screen">
       <Navbar />
-
-      {/* Search & Filter */}
-      <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
-        <TextField
-          label="Search Menu"
-          variant="outlined"
-          fullWidth
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <FormControl sx={{ minWidth: 150 }}>
-          <Select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            displayEmpty
-          >
-            <MenuItem value="">all</MenuItem>
-            <MenuItem value="makanan">Makanan</MenuItem>
-            <MenuItem value="minuman">Minuman</MenuItem>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex gap-4 mb-6">
+          <Input
+            placeholder="Search Menu"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-grow"
+          />
+          <Select value={filterType} onValueChange={setFilterType}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="makanan">Makanan</SelectItem>
+              <SelectItem value="minuman">Minuman</SelectItem>
+            </SelectContent>
           </Select>
-        </FormControl>
-      </Box>
+        </div>
 
-      {/* Menu List */}
-      {loading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
-          <CircularProgress />
-        </Box>
-      ) : (
-        <Grid container spacing={2}>
-          {menuData.length > 0 ? (
-            menuData
-              .filter((menu) => (filterType ? menu.jenis === filterType : true))
-              .map((menu, index) => (
-                <Grid item xs={12} sm={6} md={4} lg={3} key={menu.id}>
-                  <Card
-                    sx={{
-                      position: "relative",
-                      height: 340,
-                      display: "flex",
-                      flexDirection: "column",
-                      borderRadius: 3,
-                      overflow: "hidden",
-                      boxShadow: 4,
-                      transition: "0.3s",
-                      "&:hover": { boxShadow: 6 },
-                    }}
-                  >
-                    {/* Delete Button */}
-                    <IconButton
-                      onClick={() => handleDeleteMenu(menu.id)}
-                      sx={{
-                        position: "absolute",
-                        top: 8,
-                        right: 8,
-                        bgcolor: "red",
-                        color: "white",
-                        "&:hover": { bgcolor: "darkred" },
-                      }}
-                    >
-                      <Trash size={20} />
-                    </IconButton>
-
-                    <Box sx={{ width: "100%", height: "180px" }}>
+        {loading ? (
+          <div className="flex justify-center mt-8">
+            <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-gray-900"></div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {menuData.length > 0 ? (
+              menuData
+                .filter((menu) =>
+                  filterType !== "all" ? menu.jenis === filterType : true
+                )
+                .map((menu) => (
+                  <Card key={menu.id} className="overflow-hidden">
+                    <CardHeader className="p-0">
                       <img
                         src={`https://ukk-p2.smktelkom-mlg.sch.id/${menu.foto}`}
                         alt={menu.nama_makanan}
-                        style={{
-                          width: "100%",
-                          height: "100%",
-                          objectFit: "cover",
-                        }}
+                        className="w-full h-48 object-cover"
                       />
-                    </Box>
-                    <CardContent sx={{ textAlign: "center" }}>
-                      <Typography variant="h6">{menu.nama_makanan}</Typography>
-                      <Typography
-                        sx={{ color: "primary.main", fontWeight: 700 }}
-                      >
+                    </CardHeader>
+                    <CardContent className="p-4">
+                      <CardTitle>{menu.nama_makanan}</CardTitle>
+                      <p className="text-md font-bold text-primary mt-2">
                         Rp{menu.harga}
-                      </Typography>
-                      <Typography
-                        sx={{
-                          color: "text.secondary",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          WebkitLineClamp: 2,
-                          display: "-webkit-box",
-                          WebkitBoxOrient: "vertical",
-                        }}
-                      >
+                      </p>
+                      <p className="text-sm text-gray-600 mt-2 line-clamp-2">
                         {menu.deskripsi}
-                      </Typography>
+                      </p>
                     </CardContent>
+                    <CardFooter className="flex justify-end p-4">
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="rounded-full p-2"
+                        onClick={() => handleDeleteMenu(menu.id)}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </CardFooter>
                   </Card>
-                </Grid>
-              ))
-          ) : (
-            <Box sx={{ textAlign: "center", width: "100%", mt: 4 }}>
-              <Typography variant="h6" color="text.secondary">
-                No menu items found.
-              </Typography>
-            </Box>
-          )}
+                ))
+            ) : (
+              <div className="col-span-full text-center mt-8">
+                <p className="text-xl text-gray-500">No menu items found.</p>
+              </div>
+            )}
 
-          {/* Blank Card for Add Menu */}
-          <Grid item xs={12} sm={6} md={4} lg={3}>
-            <Card
-              sx={{
-                position: "relative",
-                height: 340,
-                display: "flex",
-                flexDirection: "column",
-                borderRadius: 3,
-                overflow: "hidden",
-                boxShadow: 4,
-                transition: "0.3s",
-                "&:hover": {
-                  boxShadow: 6,
-                  bgcolor: "#f0f8ff", // Background change on hover
-                },
-                bgcolor: "#f9f9f9", // Light background color for the add menu card
-                cursor: "pointer",
-                padding: 2,
-                justifyContent: "center",
-                alignItems: "center",
-              }}
-              onClick={() => setOpenForm(true)} // Open the add menu form when clicked
-            >
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  width: 56,
-                  height: 56,
-                }}
-              >
-                <Plus size={36} color="black" />
-              </Box>
-              <Typography
-                variant="h6"
-                color="text.secondary"
-                sx={{ textAlign: "center", fontWeight: 500 }}
-              >
-                Add Menu
-              </Typography>
-            </Card>
-          </Grid>
-        </Grid>
-      )}
-
-      {/* Add Menu Modal */}
-      <Modal
-        open={openForm}
-        onClose={() => setOpenForm(false)}
-        sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}
-      >
-        <Box sx={{ bgcolor: "white", p: 4, borderRadius: 3, width: 600 }}>
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            Add New Menu
-          </Typography>
-
-          <TextField
-            label="Name"
-            fullWidth
-            name="nama_makanan"
-            value={newMenu.nama_makanan}
-            onChange={handleInputChange}
-            sx={{ mb: 2 }}
-          />
-
-          <TextField
-            label="Price"
-            fullWidth
-            name="harga"
-            type="number"
-            value={newMenu.harga}
-            onChange={handleInputChange}
-            sx={{ mb: 2 }}
-          />
-
-          <TextField
-            select
-            label="Type"
-            fullWidth
-            name="jenis"
-            value={newMenu.jenis}
-            onChange={handleInputChange}
-            sx={{ mb: 2 }}
-          >
-            <MenuItem value="makanan">Makanan</MenuItem>
-            <MenuItem value="minuman">Minuman</MenuItem>
-          </TextField>
-
-          <TextField
-            label="Description"
-            fullWidth
-            name="deskripsi"
-            multiline
-            rows={2}
-            value={newMenu.deskripsi}
-            onChange={handleInputChange}
-            sx={{ mb: 2 }}
-          />
-
-          {/* File Drop Area */}
-          <FileDrop
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-          >
-            <Box
-              sx={{
-                border: isDragging ? "2px dashed #007bff" : "2px dashed #ccc",
-                padding: "40px",
-                borderRadius: "10px",
-                textAlign: "center",
-                cursor: "pointer",
-                marginBottom: "15px",
-                transition: "border 0.3s ease",
-                backgroundColor: isDragging ? "#f0f8ff" : "transparent",
-                width: "100%",
-              }}
-            >
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ mb: 1, fontSize: "14px" }}
-              >
-                {isDragging
-                  ? "Release to upload!"
-                  : "Drag & Drop an image here or click below"}
-              </Typography>
-
-              {/* File Upload Button */}
-              <input
-                type="file"
-                accept="image/*"
-                style={{ display: "none" }}
-                id="fileUpload"
-                onChange={handleFileChange}
-              />
-              <label htmlFor="fileUpload">
-                <Button
-                  variant="contained"
-                  component="span"
-                  sx={{
-                    textTransform: "none",
-                    bgcolor: "#007bff",
-                    "&:hover": { bgcolor: "#0056b3" },
-                  }}
-                >
-                  Select Image
-                </Button>
-              </label>
-
-              {/* Show File Name or Preview */}
-              {newMenu.foto && (
-                <Box sx={{ mt: 2 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    {newMenu.foto.name}
-                  </Typography>
-                  <img
-                    src={URL.createObjectURL(newMenu.foto)}
-                    alt="Preview"
-                    style={{
-                      width: "100%",
-                      maxHeight: "150px",
-                      objectFit: "cover",
-                      marginTop: "10px",
-                      borderRadius: "5px",
-                      boxShadow: "0px 2px 10px rgba(0, 0, 0, 0.1)",
-                    }}
+            <Dialog open={openForm} onOpenChange={setOpenForm}>
+              <DialogTrigger asChild>
+                <Card className="flex flex-col items-center justify-center h-full cursor-pointer hover:bg-gray-50 transition-colors">
+                  <CardContent className="flex flex-col items-center justify-center p-6">
+                    <Plus className="h-12 w-12 text-gray-400 mb-2" />
+                    <p className="text-lg font-medium text-gray-600">
+                      Add Menu
+                    </p>
+                  </CardContent>
+                </Card>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[600px]">
+                <DialogHeader>
+                  <DialogTitle>Add New Menu</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <Input
+                    name="nama_makanan"
+                    placeholder="Name"
+                    value={newMenu.nama_makanan}
+                    onChange={handleInputChange}
                   />
-
-                  {/* Remove File Button */}
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    sx={{ mt: 1 }}
-                    onClick={() => {
-                      // Remove the file
-                      setNewMenu({ ...newMenu, foto: null });
-                    }}
+                  <Input
+                    name="harga"
+                    type="number"
+                    placeholder="Price"
+                    value={newMenu.harga}
+                    onChange={handleInputChange}
+                  />
+                  <Select
+                    name="jenis"
+                    value={newMenu.jenis}
+                    onValueChange={(value) =>
+                      setNewMenu({ ...newMenu, jenis: value })
+                    }
                   >
-                    Remove
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="makanan">Makanan</SelectItem>
+                      <SelectItem value="minuman">Minuman</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Textarea
+                    name="deskripsi"
+                    placeholder="Description"
+                    value={newMenu.deskripsi}
+                    onChange={handleInputChange}
+                  />
+                  <FileDrop
+                    onDrop={handleDrop}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                  >
+                    <div
+                      className={`border-2 border-dashed p-8 rounded-lg text-center cursor-pointer transition-colors ${
+                        isDragging
+                          ? "border-primary bg-primary/10"
+                          : "border-gray-300"
+                      }`}
+                    >
+                      <p className="text-sm text-gray-500 mb-2">
+                        {isDragging
+                          ? "Release to upload!"
+                          : "Drag & Drop an image here or click below"}
+                      </p>
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        id="fileUpload"
+                        className="hidden"
+                        onChange={handleFileChange}
+                      />
+                      <label htmlFor="fileUpload">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="cursor-pointer"
+                          onClick={() =>
+                            document.getElementById("fileUpload")?.click()
+                          }
+                        >
+                          Select Image
+                        </Button>
+                      </label>
+                      {newMenu.foto && (
+                        <div className="mt-4">
+                          <p className="text-sm text-gray-500">
+                            {newMenu.foto.name}
+                          </p>
+                          <img
+                            src={
+                              URL.createObjectURL(newMenu.foto) ||
+                              "/placeholder.svg"
+                            }
+                            alt="Preview"
+                            className="mt-2 max-h-[150px] object-cover rounded-md shadow-sm"
+                          />
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="mt-2"
+                            onClick={() =>
+                              setNewMenu({ ...newMenu, foto: null })
+                            }
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </FileDrop>
+                </div>
+                <div className="flex justify-end gap-4">
+                  <Button variant="outline" onClick={() => setOpenForm(false)}>
+                    Cancel
                   </Button>
-                </Box>
-              )}
-            </Box>
-          </FileDrop>
-
-          <Box sx={{ display: "flex", justifyContent: "right", mt: 2, gap: 2 }}>
-            <Button
-              variant="outlined"
-              color="error"
-              onClick={() => setOpenForm(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="contained"
-              onClick={handleAddMenu}
-              disabled={addLoading}
-            >
-              {addLoading ? <CircularProgress size={24} /> : "Add"}
-            </Button>
-          </Box>
-        </Box>
-      </Modal>
-
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={3000}
-        onClose={() => setSnackbarOpen(false)}
-        message="Menu added successfully!"
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      />
-    </Box>
+                  <Button onClick={handleAddMenu} disabled={addLoading}>
+                    {addLoading ? (
+                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
+                    ) : (
+                      "Add"
+                    )}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        )}
+      </div>
+    </div>
   );
 };
 

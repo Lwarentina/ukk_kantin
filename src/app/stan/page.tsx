@@ -6,7 +6,6 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
-  Button,
 } from "@mui/material";
 import axios from "axios";
 import Navbar from "./navbar"; // Import Navbar
@@ -37,11 +36,6 @@ const DashboardStan = () => {
           }
         );
         setStanData(response.data.data);
-        setSnackbar({
-          open: true,
-          message: "Welcome back!",
-          severity: "success",
-        });
       } catch (err: any) {
         setError(err.response?.data?.message || "Failed to fetch data.");
         setSnackbar({
@@ -56,11 +50,6 @@ const DashboardStan = () => {
 
     fetchStanData();
   }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem("authToken");
-    window.location.href = "/";
-  };
 
   const handleSnackbarClose = () => {
     setSnackbar({ ...snackbar, open: false });
@@ -81,9 +70,6 @@ const DashboardStan = () => {
       {/* Logout & Welcome */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
         <Typography variant="h4">Welcome, {stanData?.nama_pemilik}!</Typography>
-        <Button variant="contained" color="error" onClick={handleLogout} sx={{ textTransform: "none" }}>
-          Logout
-        </Button>
       </Box>
 
       {/* Snackbar */}
