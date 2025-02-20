@@ -1,98 +1,125 @@
-"use client";
-import React, { useEffect, useState } from "react";
-import { AppBar, Toolbar, Typography, Button, Box, CircularProgress } from "@mui/material";
-import axios from "axios";
-import { Store, LogOut } from "lucide-react"; // Icons for better UX
+"use client"
+
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
+import axios from "axios"
+import { Store, LogOut, User, Menu } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Skeleton } from "@/components/ui/skeleton"
+import { toast } from "@/hooks/use-toast"
 
 const Navbar = () => {
-  const [stanData, setStanData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [stanData, setStanData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const router = useRouter()
 
   useEffect(() => {
-    const token = localStorage.getItem("authToken");
+    const token = localStorage.getItem("authToken")
     if (!token) {
-      window.location.href = "/";
-      return;
+      router.push("/")
+      return
     }
 
     const fetchStanData = async () => {
       try {
-        const response = await axios.get(
-          "https://ukk-p2.smktelkom-mlg.sch.id/api/get_stan",
-          {
-            headers: { Authorization: `Bearer ${token}`, makerID: "3" },
-          }
-        );
-        setStanData(response.data.data);
+        const response = await axios.get("https://ukk-p2.smktelkom-mlg.sch.id/api/get_stan", {
+          headers: { Authorization: `Bearer ${token}`, makerID: "3" },
+        })
+        setStanData(response.data.data)
       } catch (err: any) {
-        setError(err.response?.data?.message || "Failed to load profile.");
+        toast({
+          title: "Error",
+          description: err.response?.data?.message || "Failed to load profile.",
+          variant: "destructive",
+        })
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
-    fetchStanData();
-  }, []);
+    fetchStanData()
+  }, [router])
 
-  // Logout function
   const handleLogout = () => {
-    localStorage.removeItem("authToken");
-    window.location.href = "/";
-  };
+    localStorage.removeItem("authToken")
+    router.push("/")
+  }
 
   return (
-    <AppBar position="static" sx={{ mb: 3, p: 1, bgcolor: "rgba(0, 0, 0, 0.8)", backdropFilter: "blur(10px)", boxShadow: 3 }}>
-      <Toolbar sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        
-        {/* Left Side (App Name) */}
-        <Typography variant="h6" sx={{ fontWeight: "bold", letterSpacing: 1 }}>
-          Kantin
-        </Typography>
+    <nav className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 w-full border-b border-border/40">
+      <div className="container flex h-14 max-w-screen-2xl items-center">
+        <div className="mr-4 hidden md:flex">
+          <Link className="mr-6 flex items-center space-x-2" href="/stan">
+            <Store className="h-6 w-6" />
+            <span className="hidden font-bold sm:inline-block">Kantin</span>
+          </Link>
+          <nav className="flex items-center space-x-6 text-sm font-medium">
+            <Link href="/stan">Dashboard</Link>
+            <Link href="/stan/menu">Menu List</Link>
+            <Link href="/stan/datasiswa">Students</Link>
+          </nav>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="h-8 w-8 rounded-full md:hidden">
+              <Menu className="h-4 w-4" />
+              <span className="sr-only">Toggle menu</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem asChild>
+              <Link href="/stan">Dashboard</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/stan/menu">Menu List</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/stan/datasiswa">Students</Link>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
+          <div className="w-full flex-1 md:w-auto md:flex-none">
+            {loading ? (
+              <Skeleton className="h-8 w-[200px]" />
+            ) : stanData ? (
+              <div className="flex items-center">
+                <Store className="mr-2 h-4 w-4" />
+                <span className="font-medium">{stanData.nama_stan}</span>
+                <span className="ml-2 text-xs text-muted-foreground">Owned by: {stanData.nama_pemilik}</span>
+              </div>
+            ) : null}
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <User className="h-4 w-4" />
+                <span className="sr-only">Open user menu</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Log out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    </nav>
+  )
+}
 
-        {/* Stan Profile (Show loading if still fetching) */}
-        {loading ? (
-          <CircularProgress size={24} color="inherit" />
-        ) : stanData ? (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mr: 2 }}>
-            <Store size={20} />
-            <Box>
-              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{stanData.nama_stan}</Typography>
-              <Typography variant="caption" sx={{ opacity: 0.8 }}>Owned by: {stanData.nama_pemilik}</Typography>
-            </Box>
-          </Box>
-        ) : (
-          <Typography variant="caption" color="error">{error}</Typography>
-        )}
+export default Navbar
 
-        {/* Navigation & Logout */}
-        <Box sx={{ display: "flex", gap: 2 }}>
-          <Button 
-            color="inherit" 
-            onClick={() => (window.location.href = "/stan")}
-            sx={{ textTransform: "none", "&:hover": { bgcolor: "rgba(255,255,255,0.1)" } }}
-          >
-            Dashboard
-          </Button>
-          <Button 
-            color="inherit" 
-            onClick={() => (window.location.href = "/stan/menu")}
-            sx={{ textTransform: "none", "&:hover": { bgcolor: "rgba(255,255,255,0.1)" } }}
-          >
-            Menu List
-          </Button>
-          <Button 
-            variant="contained" 
-            color="error" 
-            onClick={handleLogout} 
-            sx={{ textTransform: "none", display: "flex", alignItems: "center", gap: 1 }}
-          >
-            <LogOut size={18} />
-          </Button>
-        </Box>
-      </Toolbar>
-    </AppBar>
-  );
-};
-
-export default Navbar;
