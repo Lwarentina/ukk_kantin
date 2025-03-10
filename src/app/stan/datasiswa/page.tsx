@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useMemo } from "react"
 import { Plus, Trash, Edit } from "lucide-react"
 import axios from "axios"
 import debounce from "lodash.debounce"
@@ -64,29 +64,24 @@ const SiswaList = () => {
     setLoading(false)
   }, [search])
 
-  const debouncedSearch = useCallback(
-    debounce(() => {
-      fetchSiswa()
-    }, 500),
-    [], // Corrected dependency array
-  )
+  const debouncedSearch = useMemo(() => debounce(() => fetchSiswa(), 500), [fetchSiswa])
 
   useEffect(() => {
     debouncedSearch()
     return () => debouncedSearch.cancel()
   }, [debouncedSearch])
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
-  }
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }))
+  }, [])
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFormData({ ...formData, foto: e.target.files[0] })
+      setFormData((prev) => ({ ...prev, foto: e.target.files![0] }))
     }
-  }
+  }, [])
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     const token = localStorage.getItem("authToken")
     if (!token) return
 
@@ -98,31 +93,18 @@ const SiswaList = () => {
     })
 
     try {
-      if (formMode === "add") {
-        await axios.post(`${API_BASE_URL}/tambah_siswa`, data, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            makerID: MAKER_ID,
-            "Content-Type": "multipart/form-data",
-          },
-        })
-        toast({
-          title: "Success",
-          description: "Student added successfully!",
-        })
-      } else {
-        await axios.post(`${API_BASE_URL}/ubah_siswa/${selectedSiswa.id}`, data, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            makerID: MAKER_ID,
-            "Content-Type": "multipart/form-data",
-          },
-        })
-        toast({
-          title: "Success",
-          description: "Student updated successfully!",
-        })
-      }
+      const endpoint = formMode === "add" ? "tambah_siswa" : `ubah_siswa/${selectedSiswa?.id}`
+      await axios.post(`${API_BASE_URL}/${endpoint}`, data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          makerID: MAKER_ID,
+          "Content-Type": "multipart/form-data",
+        },
+      })
+      toast({
+        title: "Success",
+        description: `Student ${formMode === "add" ? "added" : "updated"} successfully!`,
+      })
       setOpenForm(false)
       fetchSiswa()
     } catch (err) {
@@ -133,35 +115,38 @@ const SiswaList = () => {
         variant: "destructive",
       })
     }
-  }
+  }, [formMode, formData, selectedSiswa, fetchSiswa])
 
-  const handleDelete = async (id: string) => {
-    const token = localStorage.getItem("authToken")
-    if (!token) return
+  const handleDelete = useCallback(
+    async (id: string) => {
+      const token = localStorage.getItem("authToken")
+      if (!token) return
 
-    try {
-      await axios.delete(`${API_BASE_URL}/hapus_siswa/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          makerID: MAKER_ID,
-        },
-      })
-      toast({
-        title: "Success",
-        description: "Student deleted successfully!",
-      })
-      fetchSiswa()
-    } catch (err) {
-      console.error("Error deleting student:", err)
-      toast({
-        title: "Error",
-        description: "Failed to delete student. Please try again.",
-        variant: "destructive",
-      })
-    }
-  }
+      try {
+        await axios.delete(`${API_BASE_URL}/hapus_siswa/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            makerID: MAKER_ID,
+          },
+        })
+        toast({
+          title: "Success",
+          description: "Student deleted successfully!",
+        })
+        fetchSiswa()
+      } catch (err) {
+        console.error("Error deleting student:", err)
+        toast({
+          title: "Error",
+          description: "Failed to delete student. Please try again.",
+          variant: "destructive",
+        })
+      }
+    },
+    [fetchSiswa],
+  )
 
-  const openEditForm = (siswa: any) => {
+  const openEditForm = useCallback((siswa: any) => {
     setSelectedSiswa(siswa)
     setFormData({
       nama_siswa: siswa.nama_siswa,
@@ -173,17 +158,17 @@ const SiswaList = () => {
     })
     setFormMode("edit")
     setOpenForm(true)
-  }
+  }, [])
 
-  const handleDragOver = () => setIsDragging(true)
-  const handleDragLeave = () => setIsDragging(false)
+  const handleDragOver = useCallback(() => setIsDragging(true), [])
+  const handleDragLeave = useCallback(() => setIsDragging(false), [])
 
-  const handleDrop = (files: FileList | null) => {
+  const handleDrop = useCallback((files: FileList | null) => {
     setIsDragging(false)
     if (files && files.length > 0) {
       const file = files[0]
       if (file.type.startsWith("image/")) {
-        setFormData({ ...formData, foto: file })
+        setFormData((prev) => ({ ...prev, foto: file }))
       } else {
         toast({
           title: "Error",
@@ -192,7 +177,7 @@ const SiswaList = () => {
         })
       }
     }
-  }
+  }, [])
 
   return (
     <div className="min-h-screen bg-background">
