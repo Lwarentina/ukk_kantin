@@ -10,7 +10,15 @@ import { FileDrop } from "react-file-drop"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardFooter, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger,
+  DialogDescription,
+} from "@/components/ui/dialog"
 import { toast } from "@/hooks/use-toast"
 import Navbar from "../navbar"
 
@@ -35,6 +43,9 @@ const SiswaList = () => {
     foto: null as File | null,
   })
   const [isDragging, setIsDragging] = useState(false)
+  const [addLoading, setAddLoading] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null)
 
   const fetchSiswa = useCallback(async () => {
     const token = localStorage.getItem("authToken")
@@ -77,13 +88,33 @@ const SiswaList = () => {
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFormData((prev) => ({ ...prev, foto: e.target.files![0] }))
+      const file = e.target.files[0]
+      if (file.type.startsWith("image/")) {
+        setFormData((prev) => ({ ...prev, foto: file }))
+      } else {
+        toast({
+          title: "Error",
+          description: "Please upload an image file",
+          variant: "destructive",
+        })
+      }
     }
   }, [])
 
   const handleSubmit = useCallback(async () => {
     const token = localStorage.getItem("authToken")
     if (!token) return
+
+    if (!formData.nama_siswa || !formData.alamat || !formData.telp || (formMode !== "edit" && !formData.foto)) {
+      toast({
+        title: "Error",
+        description: "Please fill all required fields.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setAddLoading(true)
 
     const data = new FormData()
     Object.entries(formData).forEach(([key, value]) => {
@@ -115,6 +146,8 @@ const SiswaList = () => {
         variant: "destructive",
       })
     }
+
+    setAddLoading(false)
   }, [formMode, formData, selectedSiswa, fetchSiswa])
 
   const handleDelete = useCallback(
@@ -129,6 +162,9 @@ const SiswaList = () => {
             makerID: MAKER_ID,
           },
         })
+
+        setDeleteDialogOpen(false)
+        setItemToDelete(null)
         toast({
           title: "Success",
           description: "Student deleted successfully!",
@@ -163,7 +199,7 @@ const SiswaList = () => {
   const handleDragOver = useCallback(() => setIsDragging(true), [])
   const handleDragLeave = useCallback(() => setIsDragging(false), [])
 
-  const handleDrop = useCallback((files: FileList | null) => {
+  const handleDrop = useCallback((files: FileList | null, event: React.DragEvent<HTMLDivElement> | null) => {
     setIsDragging(false)
     if (files && files.length > 0) {
       const file = files[0]
@@ -179,110 +215,47 @@ const SiswaList = () => {
     }
   }, [])
 
+  useEffect(() => {
+    return () => {
+      // Clean up any object URLs when component unmounts
+      if (formData.foto) {
+        URL.revokeObjectURL(URL.createObjectURL(formData.foto))
+      }
+    }
+  }, [formData.foto])
+
+  const DeleteButton = ({
+    onClick,
+  }: {
+    onClick: (e: React.MouseEvent) => void
+  }) => (
+    <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+      <Button variant="destructive" size="icon" className="rounded-full p-2" onClick={onClick}>
+        <Trash className="h-4 w-4" />
+      </Button>
+    </motion.div>
+  )
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-gray-100 min-h-screen">
       <Navbar />
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex gap-4 mb-6">
           <Input
             placeholder="Search Students"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="max-w-xs"
+            className="flex-grow"
           />
-          <Dialog open={openForm} onOpenChange={setOpenForm}>
-            <DialogTrigger asChild>
-              <MotionCard
-                className="flex flex-col items-center justify-center h-full cursor-pointer hover:bg-gray-50 transition-colors"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <CardContent className="flex flex-col items-center justify-center p-6">
-                  <motion.div initial={{ rotate: 0 }} whileHover={{ rotate: 90 }} transition={{ duration: 0.2 }}>
-                    <Plus className="h-12 w-12 text-gray-400 mb-2" />
-                  </motion.div>
-                  <p className="text-lg font-medium text-gray-600">Add Student</p>
-                </CardContent>
-              </MotionCard>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px]">
-              <DialogHeader>
-                <DialogTitle>{formMode === "add" ? "Add New Student" : "Edit Student"}</DialogTitle>
-              </DialogHeader>
-              <motion.div
-                className="grid gap-4 py-4"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <Input
-                  name="nama_siswa"
-                  placeholder="Full Name"
-                  value={formData.nama_siswa}
-                  onChange={handleInputChange}
-                />
-                <Input name="alamat" placeholder="Address" value={formData.alamat} onChange={handleInputChange} />
-                <Input name="telp" placeholder="Phone Number" value={formData.telp} onChange={handleInputChange} />
-                <Input name="username" placeholder="Username" value={formData.username} onChange={handleInputChange} />
-                <FileDrop onDrop={handleDrop} onDragOver={handleDragOver} onDragLeave={handleDragLeave}>
-                  <div
-                    className={`border-2 border-dashed p-8 rounded-lg text-center cursor-pointer transition-colors ${
-                      isDragging ? "border-primary bg-primary/10" : "border-gray-300"
-                    }`}
-                  >
-                    <p className="text-sm text-gray-500 mb-2">
-                      {isDragging ? "Release to upload!" : "Drag & Drop an image here or click below"}
-                    </p>
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      id="fileUpload"
-                      className="hidden"
-                      onChange={handleFileChange}
-                    />
-                    <label htmlFor="fileUpload">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="cursor-pointer"
-                        onClick={() => document.getElementById("fileUpload")?.click()}
-                      >
-                        Select Image
-                      </Button>
-                    </label>
-                    {formData.foto && (
-                      <div className="mt-4">
-                        <p className="text-sm text-gray-500">{formData.foto.name}</p>
-                        <img
-                          src={URL.createObjectURL(formData.foto) || "/placeholder.svg"}
-                          alt="Preview"
-                          className="mt-2 max-h-[150px] object-cover rounded-md shadow-sm"
-                        />
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="mt-2"
-                          onClick={() => setFormData({ ...formData, foto: null })}
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </FileDrop>
-              </motion.div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setOpenForm(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleSubmit}>{formMode === "add" ? "Add" : "Update"}</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
         </div>
 
         {loading ? (
-          <div className="flex justify-center mt-8">
+          <motion.div
+            className="flex justify-center mt-8"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
             <motion.div
               className="rounded-full h-32 w-32 border-t-2 border-b-2 border-gray-900"
               animate={{ rotate: 360 }}
@@ -292,7 +265,7 @@ const SiswaList = () => {
                 ease: "linear",
               }}
             ></motion.div>
-          </div>
+          </motion.div>
         ) : (
           <AnimatePresence>
             <motion.div
@@ -301,37 +274,221 @@ const SiswaList = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-              {siswaData.map((siswa) => (
-                <MotionCard
-                  key={siswa.id}
-                  className="overflow-hidden"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.2 }}
+              {siswaData.length > 0 ? (
+                siswaData.map((siswa) => (
+                  <MotionCard
+                    key={siswa.id}
+                    className="overflow-hidden cursor-pointer"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <CardHeader className="p-0">
+                      <img
+                        src={siswa.foto ? `${API_BASE_URL}/${siswa.foto}` : "/placeholder.svg"}
+                        alt={siswa.nama_siswa}
+                        className="w-full h-36 object-cover"
+                      />
+                    </CardHeader>
+                    <CardContent className="p-4">
+                      <CardTitle>{siswa.nama_siswa}</CardTitle>
+                      <p className="text-sm text-gray-600 mt-2">{siswa.alamat}</p>
+                      <p className="text-sm text-gray-600">{siswa.telp}</p>
+                    </CardContent>
+                    <CardFooter className="flex justify-end p-4">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="mr-2"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          openEditForm(siswa)
+                        }}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <DeleteButton
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setItemToDelete(siswa.id)
+                          setDeleteDialogOpen(true)
+                        }}
+                      />
+                    </CardFooter>
+                  </MotionCard>
+                ))
+              ) : (
+                <motion.div
+                  className="col-span-full text-center mt-8"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
                 >
-                  <CardHeader className="p-0">
-                    <img
-                      src={siswa.foto ? `${API_BASE_URL}/${siswa.foto}` : "/placeholder.svg"}
-                      alt={siswa.nama_siswa}
-                      className="w-full h-36 object-cover"
+                  <p className="text-xl text-gray-500">No students found.</p>
+                </motion.div>
+              )}
+
+              <Dialog open={openForm} onOpenChange={setOpenForm}>
+                <DialogTrigger asChild>
+                  <MotionCard
+                    className="flex flex-col items-center justify-center h-full cursor-pointer hover:bg-gray-50 transition-colors"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <CardContent className="flex flex-col items-center justify-center p-6">
+                      <motion.div initial={{ rotate: 0 }} whileHover={{ rotate: 90 }} transition={{ duration: 0.2 }}>
+                        <Plus className="h-12 w-12 text-gray-400 mb-2" />
+                      </motion.div>
+                      <p className="text-lg font-medium text-gray-600">Add Student</p>
+                    </CardContent>
+                  </MotionCard>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[600px]">
+                  <DialogHeader>
+                    <DialogTitle>{formMode === "add" ? "Add New Student" : "Edit Student"}</DialogTitle>
+                  </DialogHeader>
+                  <motion.div
+                    className="grid gap-4 py-4"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Input
+                      name="nama_siswa"
+                      placeholder="Full Name"
+                      value={formData.nama_siswa}
+                      onChange={handleInputChange}
                     />
-                  </CardHeader>
-                  <CardContent className="p-4">
-                    <CardTitle>{siswa.nama_siswa}</CardTitle>
-                    <p className="text-sm text-gray-600 mt-2">{siswa.alamat}</p>
-                    <p className="text-sm text-gray-600">{siswa.telp}</p>
-                  </CardContent>
-                  <CardFooter className="flex justify-end p-4">
-                    <Button variant="outline" size="icon" className="mr-2" onClick={() => openEditForm(siswa)}>
-                      <Edit className="h-4 w-4" />
+                    <Input name="alamat" placeholder="Address" value={formData.alamat} onChange={handleInputChange} />
+                    <Input name="telp" placeholder="Phone Number" value={formData.telp} onChange={handleInputChange} />
+                    <Input
+                      name="username"
+                      placeholder="Username"
+                      value={formData.username}
+                      onChange={handleInputChange}
+                    />
+                    <FileDrop
+                      onDrop={(files, event) => handleDrop(files, event)}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                    >
+                      <div
+                        className={`border-2 border-dashed p-8 rounded-lg text-center cursor-pointer transition-colors ${
+                          isDragging ? "border-primary bg-primary/10" : "border-gray-300"
+                        }`}
+                      >
+                        <p className="text-sm text-gray-500 mb-2">
+                          {isDragging ? "Release to upload!" : "Drag & Drop an image here or click below"}
+                        </p>
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          id="fileUpload"
+                          className="hidden"
+                          onChange={handleFileChange}
+                        />
+                        <label htmlFor="fileUpload">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="cursor-pointer"
+                            onClick={() => document.getElementById("fileUpload")?.click()}
+                          >
+                            Select Image
+                          </Button>
+                        </label>
+                        {formData.foto && (
+                          <div className="mt-4">
+                            <p className="text-sm text-gray-500">{formData.foto.name}</p>
+                            <img
+                              src={URL.createObjectURL(formData.foto) || "/placeholder.svg"}
+                              alt="Preview"
+                              className="mt-2 max-h-[150px] object-cover rounded-md shadow-sm"
+                              onLoad={() => {
+                                // Revoke the object URL after the image has loaded to avoid memory leaks
+                                URL.revokeObjectURL(URL.createObjectURL(formData.foto!))
+                              }}
+                            />
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="mt-2"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setFormData((prev) => ({ ...prev, foto: null }))
+                              }}
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </FileDrop>
+                  </motion.div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setOpenForm(false)
+                        if (formMode === "add") {
+                          setFormData({
+                            nama_siswa: "",
+                            alamat: "",
+                            telp: "",
+                            username: "",
+                            password: "",
+                            foto: null,
+                          })
+                        }
+                      }}
+                    >
+                      Cancel
                     </Button>
-                    <Button variant="destructive" size="icon" onClick={() => handleDelete(siswa.id)}>
-                      <Trash className="h-4 w-4" />
+                    <Button onClick={handleSubmit} disabled={addLoading}>
+                      {addLoading ? (
+                        <motion.div
+                          className="rounded-full h-4 w-4 border-t-2 border-b-2 border-white"
+                          animate={{ rotate: 360 }}
+                          transition={{
+                            duration: 1,
+                            repeat: Number.POSITIVE_INFINITY,
+                            ease: "linear",
+                          }}
+                        ></motion.div>
+                      ) : formMode === "edit" ? (
+                        "Update"
+                      ) : (
+                        "Add"
+                      )}
                     </Button>
-                  </CardFooter>
-                </MotionCard>
-              ))}
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Confirm Deletion</DialogTitle>
+                    <DialogDescription>
+                      Are you sure you want to delete this student? This action cannot be undone.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter className="sm:justify-end">
+                    <Button type="button" variant="secondary" onClick={() => setDeleteDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      onClick={() => itemToDelete && handleDelete(itemToDelete)}
+                    >
+                      Delete
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </motion.div>
           </AnimatePresence>
         )}
@@ -341,4 +498,3 @@ const SiswaList = () => {
 }
 
 export default SiswaList
-
