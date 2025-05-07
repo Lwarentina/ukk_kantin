@@ -19,9 +19,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import Navbar from "./navbar"
-import Order from "./dashboardcomp/order"
-import Income from "./dashboardcomp/income"
-import History from "./dashboardcomp/history"
+import Order from "./dashboard/order"
+import Income from "./dashboard/income"
+import History from "./dashboard/history"
 
 interface StanData {
   id: number
@@ -123,16 +123,24 @@ const DashboardStan = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="bg-gray-100 min-h-screen">
       <Navbar />
-      <main className="container mx-auto p-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="grid grid-cols-1 md:grid-cols-2 gap-6"
+          className="grid grid-cols-1 md:grid-cols-3 gap-6"
+          style={{
+            gridTemplateRows: "auto auto",
+            gridTemplateAreas: `
+              "profile order history"
+              "income income history"
+            `,
+          }}
         >
-          <Card className="w-full">
+          {/* Profile Card */}
+          <Card className="w-full" style={{ gridArea: "profile" }}>
             <CardHeader>
               <CardTitle>Profile</CardTitle>
               <CardDescription>Manage your stan profile</CardDescription>
@@ -239,7 +247,8 @@ const DashboardStan = () => {
             </CardContent>
           </Card>
 
-          <Card className="w-full">
+          {/* Orders Card */}
+          <Card className="w-full" style={{ gridArea: "order" }}>
             <CardHeader>
               <CardTitle>Orders</CardTitle>
               <CardDescription>Manage your orders</CardDescription>
@@ -249,7 +258,8 @@ const DashboardStan = () => {
             </CardContent>
           </Card>
 
-          <Card className="w-full">
+          {/* Income Card */}
+          <Card className="w-full" style={{ gridArea: "income" }}>
             <CardHeader>
               <CardTitle>Income</CardTitle>
               <CardDescription>View your income</CardDescription>
@@ -259,7 +269,8 @@ const DashboardStan = () => {
             </CardContent>
           </Card>
 
-          <Card className="w-full">
+          {/* History Card */}
+          <Card className="w-full" style={{ gridArea: "history" }}>
             <CardHeader>
               <CardTitle>History</CardTitle>
               <CardDescription>View your order history</CardDescription>
@@ -269,7 +280,7 @@ const DashboardStan = () => {
             </CardContent>
           </Card>
         </motion.div>
-      </main>
+      </div>
     </div>
   )
 }

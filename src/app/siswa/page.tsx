@@ -1,203 +1,172 @@
-"use client";
-import React, { useEffect, useState } from "react";
-import {
-  Box,
-  Typography,
-  Grid,
-  Card,
-  CardContent,
-  CircularProgress,
-  Snackbar,
-  Alert,
-  Button,
-} from "@mui/material";
-import axios from "axios";
+"use client"
 
-const DashboardSiswa = () => {
-  const [siswaData, setSiswaData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "info",
-  });
+import { useEffect, useState, useCallback } from "react"
+import axios from "axios"
+import { motion, AnimatePresence } from "framer-motion"
+import { Search } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { toast } from "@/hooks/use-toast"
+import MenuCard from "./components/menu-card"
+
+const API_BASE_URL = "https://ukk-p2.smktelkom-mlg.sch.id/api"
+
+export default function SiswaMenuPage() {
+  const [search, setSearch] = useState("")
+  const [filterType, setFilterType] = useState("all")
+  const [discountedMenus, setDiscountedMenus] = useState<any[]>([])
+  const [foodMenus, setFoodMenus] = useState<any[]>([])
+  const [drinkMenus, setDrinkMenus] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchMenus = useCallback(async () => {
+    const token = localStorage.getItem("authToken")
+    if (!token) return
+
+    setLoading(true)
+    try {
+      // Fetch all menu types in parallel
+      const [discountedResponse, foodResponse, drinkResponse] = await Promise.all([
+        axios.post(
+          `${API_BASE_URL}/getmenudiskonsiswa`,
+          { search },
+          {
+            headers: { Authorization: `Bearer ${token}`, makerID: "3" },
+          },
+        ),
+        axios.post(
+          `${API_BASE_URL}/getmenufood`,
+          { search },
+          {
+            headers: { Authorization: `Bearer ${token}`, makerID: "3" },
+          },
+        ),
+        axios.post(
+          `${API_BASE_URL}/getmenudrink`,
+          { search },
+          {
+            headers: { Authorization: `Bearer ${token}`, makerID: "3" },
+          },
+        ),
+      ])
+
+      // Process discounted menus to ensure they have the correct properties
+      const processedDiscountedMenus = (discountedResponse.data.data || []).map((menu: any) => {
+        // Make sure each menu has the necessary properties
+        return {
+          ...menu,
+          id_menu: menu.id_menu || menu.id,
+          persentase_diskon: menu.persentase_diskon || 0,
+          nama_diskon: menu.nama_diskon || null,
+        }
+      })
+
+      setDiscountedMenus(processedDiscountedMenus)
+      setFoodMenus(foodResponse.data.data || [])
+      setDrinkMenus(drinkResponse.data.data || [])
+    } catch (err: any) {
+      console.error("Error fetching menus:", err)
+      toast({
+        title: "Error",
+        description: "Failed to fetch menu items. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }, [search])
 
   useEffect(() => {
-    // Get token from localStorage
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      window.location.href = "/"; // Redirect to login if no token
-      return;
+    fetchMenus()
+  }, [fetchMenus])
+
+  // Filter menus based on filter type
+  const getFilteredMenus = () => {
+    switch (filterType) {
+      case "discounted":
+        return discountedMenus
+      case "makanan":
+        return foodMenus
+      case "minuman":
+        return drinkMenus
+      default:
+        // Combine all menus for "all" filter
+        return [...discountedMenus, ...foodMenus, ...drinkMenus]
     }
-
-    // Fetch siswa data
-    const fetchSiswaData = async () => {
-      try {
-        const response = await axios.get(
-          "https://ukk-p2.smktelkom-mlg.sch.id/api/get_profile",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              makerID: "3", // Add the required makerID here
-            },
-          }
-        );
-        setSiswaData(response.data.data);
-        setSnackbar({
-          open: true,
-          message: "Welcome back!",
-          severity: "success",
-        });
-      } catch (err: any) {
-        setError(err.response?.data?.message || "Failed to fetch data.");
-        setSnackbar({
-          open: true,
-          message: "Error loading data. Please try again.",
-          severity: "error",
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSiswaData();
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem("authToken"); // Remove token
-    window.location.href = "/"; // Redirect to login page
-  };
-
-  const handleSnackbarClose = () => {
-    setSnackbar({ ...snackbar, open: false });
-  };
-
-  if (loading) {
-    return (
-      <Box
-        sx={{
-          height: "100vh",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <CircularProgress />
-      </Box>
-    );
   }
 
-  if (error) {
-    return (
-      <Box
-        sx={{
-          height: "100vh",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          flexDirection: "column",
-          textAlign: "center",
-        }}
-      >
-        <Typography variant="h6" color="error">
-          {error}
-        </Typography>
-      </Box>
-    );
-  }
+  const filteredMenus = getFilteredMenus()
 
   return (
-    <Box sx={{ p: 4 }}>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          mb: 3,
-        }}
-      >
-        <Typography variant="h4">Welcome, {siswaData?.username}!</Typography>
-        <Button
-          variant="contained"
-          color="error"
-          onClick={handleLogout}
-          sx={{ textTransform: "none" }}
-        >
-          Logout
-        </Button>
-      </Box>
+    <div className="bg-gray-100 min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+          <h1 className="text-2xl font-bold">Menu</h1>
+          <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+            <div className="relative w-full sm:w-auto">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+              <Input
+                placeholder="Search Menu"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10 w-full sm:w-[300px]"
+              />
+            </div>
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="w-full sm:w-[180px]">
+                <SelectValue placeholder="Filter by type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="discounted">Discounted</SelectItem>
+                <SelectItem value="makanan">Food</SelectItem>
+                <SelectItem value="minuman">Drinks</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
 
-      <Grid container spacing={3}>
-        <Grid item xs={12} sm={6} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Nama Siswa:
-              </Typography>
-              <Typography>{siswaData?.nama_siswa}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Alamat:
-              </Typography>
-              <Typography>{siswaData?.alamat}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Telepon:
-              </Typography>
-              <Typography>{siswaData?.telp}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Username:
-              </Typography>
-              <Typography>{siswaData?.username}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Role:
-              </Typography>
-              <Typography>{siswaData?.role}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Snackbar */}
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={handleSnackbarClose}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert
-          onClose={handleSnackbarClose}
-          severity={snackbar.severity as "info" | "success" | "error"}
-          sx={{ width: "100%" }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
-    </Box>
-  );
-};
-
-export default DashboardSiswa;
+        {loading ? (
+          <motion.div
+            className="flex justify-center mt-8"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="rounded-full h-32 w-32 border-t-2 border-b-2 border-gray-900"
+              animate={{ rotate: 360 }}
+              transition={{
+                duration: 1,
+                repeat: Number.POSITIVE_INFINITY,
+                ease: "linear",
+              }}
+            ></motion.div>
+          </motion.div>
+        ) : (
+          <AnimatePresence>
+            <motion.div
+              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              {filteredMenus.length > 0 ? (
+                filteredMenus.map((menu) => <MenuCard key={`${menu.id_menu || menu.id}-${menu.jenis}`} menu={menu} />)
+              ) : (
+                <motion.div
+                  className="col-span-full text-center mt-8"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <p className="text-xl text-gray-500">No menu items found.</p>
+                </motion.div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        )}
+      </div>
+    </div>
+  )
+}

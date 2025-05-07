@@ -20,6 +20,7 @@ import { toast } from "@/hooks/use-toast"
 const Navbar = () => {
   const [stanData, setStanData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [menuOpen, setMenuOpen] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -55,50 +56,43 @@ const Navbar = () => {
   }
 
   return (
-    <nav className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 w-full border-b border-border/40">
-      <div className="container flex h-14 max-w-screen-2xl items-center">
-        <div className="mr-4 hidden md:flex">
-          <Link className="mr-6 flex items-center space-x-2" href="/stan">
-            <Store className="h-6 w-6" />
-            <span className="hidden font-bold sm:inline-block">Kantin</span>
+    <nav className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50 w-full border-b border-border/40 shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
+        {/* Logo and Links */}
+        <div className="flex items-center">
+          <Link className="flex items-center space-x-2 mr-6" href="/stan">
+            <Store className="h-6 w-6 text-primary" />
+            <span className="hidden font-bold sm:inline-block text-primary">Kantin</span>
           </Link>
-          <nav className="flex items-center space-x-6 text-sm font-medium">
-            <Link href="/stan">Dashboard</Link>
-            <Link href="/stan/menu">Menu List</Link>
-            <Link href="/stan/datasiswa">Students</Link>
+          <nav className="hidden md:flex items-center space-x-8 text-sm font-medium">
+            <Link href="/stan" className="hover:text-primary transition-colors">
+              Dashboard
+            </Link>
+            <Link href="/stan/menu" className="hover:text-primary transition-colors">
+              Menu List
+            </Link>
+            <Link href="/stan/diskon" className="hover:text-primary transition-colors">
+              Discount
+            </Link>
+            <Link href="/stan/datasiswa" className="hover:text-primary transition-colors">
+              Students
+            </Link>
           </nav>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 rounded-full md:hidden">
-              <Menu className="h-4 w-4" />
-              <span className="sr-only">Toggle menu</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem asChild>
-              <Link href="/stan">Dashboard</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/stan/menu">Menu List</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/stan/datasiswa">Students</Link>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-          <div className="w-full flex-1 md:w-auto md:flex-none">
-            {loading ? (
-              <Skeleton className="h-8 w-[200px]" />
-            ) : stanData ? (
-              <div className="flex items-center">
-                <Store className="mr-2 h-4 w-4" />
-                <span className="font-medium">{stanData.nama_stan}</span>
-                <span className="ml-2 text-xs text-muted-foreground">Owned by: {stanData.nama_pemilik}</span>
-              </div>
-            ) : null}
-          </div>
+
+        {/* User Info and Mobile Menu */}
+        <div className="flex items-center space-x-4">
+          {loading ? (
+            <Skeleton className="h-8 w-[200px]" />
+          ) : stanData ? (
+            <div className="hidden md:flex items-center">
+              <Store className="mr-2 h-4 w-4 text-muted-foreground" />
+              <span className="font-medium">{stanData.nama_stan}</span>
+              <span className="ml-2 text-xs text-muted-foreground">Owned by: {stanData.nama_pemilik}</span>
+            </div>
+          ) : null}
+
+          {/* User Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -115,11 +109,58 @@ const Navbar = () => {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Mobile Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className="h-8 w-8 rounded-full md:hidden"
+                onClick={() => setMenuOpen(!menuOpen)}
+              >
+                <Menu className="h-4 w-4" />
+                <span className="sr-only">Toggle menu</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link href="/stan">Dashboard</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/stan/menu">Menu List</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/stan/diskon">Discount</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/stan/datasiswa">Students</Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
+
+      {/* Mobile Dropdown Links */}
+      {menuOpen && (
+        <div className="md:hidden bg-background border-t border-border/40">
+          <div className="flex flex-col space-y-2 p-4">
+            <Link href="/stan" className="hover:text-primary transition-colors">
+              Dashboard
+            </Link>
+            <Link href="/stan/menu" className="hover:text-primary transition-colors">
+              Menu List
+            </Link>
+            <Link href="/stan/diskon" className="hover:text-primary transition-colors">
+              Discount
+            </Link>
+            <Link href="/stan/datasiswa" className="hover:text-primary transition-colors">
+              Students
+            </Link>
+          </div>
+        </div>
+      )}
     </nav>
   )
 }
 
 export default Navbar
-
