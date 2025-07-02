@@ -20,4 +20,4 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-![ely](https://tenor.com/view/elysia-clap-clapping-happy-herrscher-gif-7672063076198997640)
+![ely](https://media1.tenor.com/m/anikuC87XogAAAAd/elysia-clap.gif)
